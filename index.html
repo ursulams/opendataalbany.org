@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Open Data Day Albany</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="all,follow">
+    <link rel="stylesheet" type="text/css" href="stylesheets/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="stylesheets/default.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.2/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.0.2/dist/leaflet.js"></script>
+    <style>
+    #locmap { height: 400px; }
+    </style>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=NTR">
+  </head>
+  <body data-spy="scroll" data-target="#navigation" data-offset="120">
+    <section id="intro" class="intro image-background">
+      <div class="overlay"></div>
+      <div class="content">
+        <div class="container clearfix">
+          <div class="row">
+            <div class="col-sm-12">
+              <h1 class="NTR">Open Data Day<br /><span class="bold">Albany/Troy, N.Y.</span></h1>
+              <p class="NTR">Part of the <a href="http://opendataday.org" class="external">International Open Data Day Hackathon</a></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <header class="header">
+        <div role="navigation" class="navbar navbar-default">
+          <div class="container">
+            </div>
+            <div id="navigation" class="collapse navbar-collapse">
+              <ul class="nav navbar-nav navbar-default">
+                <li class="active"><a href="#about">About</a></li>
+                <li><a href="#location">Location</a></li>
+                <li><a href="#pitch a project hack">Pitch a project hack</a></li>
+                <li><a href="#become a sponsor">Become a sponsor</a></li>
+              </ul>
+            </div>
+          </div>
+    </header>
+  <section id="about" class="section-gray">
+      <div class="container clearfix">
+        <div class="row margin-bottom">
+          <div class="col-sm-12">
+            <h2 class="heading">About</h2>
+            <p class="lead">What's Open Data Day?</p>
+            <p> Open Data Day is a collection of local gatherings of open government advocates, programmers, statisticians, and citizens
+            who want to explore, build things with, and promote the use of open data. The next Open Data Day is March 3, 2018.</p>
+            <a href="https://opendatadayalbany.splashthat.com/" class="btn btn-primary" role="button">sign me up!</a>
+            <p></p>  
+            <p>Draft Schedule</p>
+            <table>
+            <tr>
+              <td><b>08:30 AM - 09:00 AM</b>  Registration and breakfast</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td><b>09:00 AM - 09:30 AM</b>  Welcome remarks and project introductions</td>
+              <td></td>
+            </tr>
+             <tr>
+              <td colspan="2"><b>09:30 AM - 10:00 AM</b> Red Hat's open data solutions:
+              <ul style="list-style-type:none">
+              <li><a href="https://access.redhat.com/products/red-hat-jboss-data-virtualization/" class="external">JBoss Data Virtualization</a></li>
+              <li><a href="https://access.redhat.com/products/red-hat-jboss-fuse/" class="external">JBoss Fuse</a></li>
+              <li><a href="https://access.redhat.com/products/red-hat-3scale/" class="external">3scale API Management Platform</a></li>
+              <li><a href="https://access.redhat.com/products/red-hat-openshift-container-platform/" class="external">OpenShift Container Platform</a></li>
+               </td>
+             </tr>
+             <tr>
+              <td><b>10:00 AM - 12:30 PM</b>  Project hacking</td>
+              <td colspan="2"><b>10:00 AM - 10:45 AM</b>  Workshop: Shiny apps (Jason Bryer)</td>
+            </tr>
+            <tr>
+              <td><b>12:30 PM - 1:30 PM</b>  Lunch (or continue project hacking)</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td rowspan="2"><b>1:30 PM - 5:00 PM</b>  Project hacking</td>
+              <td><b>1:30 PM - 2:15 PM</b>  Workshop: open data sources (Matthew Lean)<br><b>2:30 PM - 3:15 PM</b> Workshop: machine learning on open data (Ursula Kaczmarek)</td>
+            </tr>
+            <tr></tr>
+            <tr>
+              <td><b>5:00 PM - 6:00 PM</b>  Project recaps and closing</td>
+            </tr>
+          </table>
+            <p></p>
+            <p>Open Data Day 2017 saw over 25 programmers, students, data scientists, and citizens working on project hacks. Teams anlayzed
+              the relationship between university rankings and terrorism risk using a Kaggle dataset, created a Twitter content classification tool,
+              and made a <a href="https://aeksco.github.io/nys_health/" class="external">NY state restaurant health inspection web app</a>.</p>
+            <p class="lead">New to working with open data?</p>
+             <p>See what's in the New York <a href="https://data.ny.gov/" class="external">State</a>
+               and <a href="https://data.cityofnewyork.us/" class="external">City</a> open data catalogues, or examine state spending data
+               at <a href="http://openbooknewyork.com/" class="external">Open Book New York.</a>
+               For a wider selection of datasets, <a href="https://www.kaggle.com/datasets" class="external">Kaggle Datasets</a> is a great place to start.</p>
+            </div>
+           </div>
+         </div>
+    </section>
+    <section id="location" class="section-gray">
+      <div class="container clearfix">
+        <div class="row">
+          <div class="col-sm-12">
+            <h2 class="heading">Location</h2>
+            <div class="row">
+              <div class="col-sm-12">
+                <p>A huge thanks to estuari, our host for 2018!</p>
+                  <div id="locmap">
+                <script>
+                  var locmap = L.map('locmap').setView([42.73,-73.68],14)
+                  L.tileLayer('https://api.mapbox.com/styles/v1/ursulakaczmarek/ciwfpu96h00572plkyt7rqlz2/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoidXJzdWxha2Fjem1hcmVrIiwiYSI6ImNpd2ZldGh0OTAwMTcyb21ucjExbHpleW8ifQ.-m-YwEngdx5IEET1r4ZFqg', {
+                  attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery Â© <a href="http://mapbox.com">Mapbox</a>',
+                  maxZoom: 18,
+                  }).addTo(locmap);
+                  var marker = L.marker([42.731, -73.690]).addTo(locmap);
+                  marker.bindPopup("estuari <br>333 Broadway #340<br>Troy, NY 12180").openPopup(locmap);
+                </script>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section id="pitch a project hack" class="section-gray">
+      <div class="container clearfix">
+        <div class="row">
+          <div class="col-sm-12">
+            <h2 class="heading">Pitch a project hack</h2>
+            <div class="row">
+              <div class="col-sm-12">
+                <p>Project hacking is at the heart of Open Data Day. If you want to build, explore, analyze, or design something at Open Data Day, pitch your project hack to organizer <a href="mailto:ursula.kaczmarek@gmail.com?Subject=Project%20Hack" target="_top">Ursula Kaczmarek</a>.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  </section>
+  <section id="become a sponsor" class="section-gray">
+    <div class="container clearfix">
+      <div class="row">
+        <div class="col-sm-12">
+            <h2 class="heading">Become a sponsor</h2>
+                 <div class="row">
+                   <div class="col-sm-12">
+                <p>Support Albany's open data community! Contact organizer <a href="mailto:ursula.kaczmarek@gmail.com?Subject=Open%20Data%20Day%20Sponsorship" target="_top">Ursula Kaczmarek</a>.</p>
+                     <p>Thanks to our sponsors for 2018:</p>
+                      <div>
+                        <img src="e00.estuari-logo.jpg" alt="estuari" height="51px" width="232px"/>
+                        <img src="CloudAndThings-web-logo.png" alt="cloundandthings" height="100px" width="287px"/>
+                        <img src="oh_logo.png" alt="onehudson" height="35px" width="220px"/>
+                        <img src="red-hat-logo.png" alt="redhat" height="50px" width="154px" hspace="20"/>
+                </div>
+             </div>
+           </div>
+         </div>
+       </div>
+     </div>
+     </section>
+    <footer>
+      <div class="container">
+        <div class="row">
+          <div class="col-sm-12">
+            <p class="NTR">Hosted on GitHub Pages - <a href = 'https://github.com/ursulakaczmarek'>ursulakaczmarek</a> maintains opendataalbany.org</p>
+          </div>
+        </div>
+      </div>
+    </footer>
+<!-- JS files-->
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7/html5shiv.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/respond.js/1.3.0/respond.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+    <script>window.jQuery || document.write('<script src="js/jquery-1.11.0.min.js"><\/script>'
+    )</script>
+    <script src="js/jquery.sticky.js"></script>
+    <script src="js/jquery.scrollTo.min.js"></script>
+    <script src="js/jquery.cookie.js"></script>
+    <script src="js/front.js"></script>
+<!-- Google Analytics -->
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-88640404-1', 'auto');
+ga('send', 'pageview');
+</script>
+<!-- End Google Analytics -->
+  </body>
+</html>
