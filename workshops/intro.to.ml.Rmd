@@ -1,0 +1,314 @@
+---
+title: 'intro to machine learning using open data'
+description: 'open data day albany/troy 2018 workshop'
+output: github_document
+author: |
+  | ursula kaczmarek
+  | twitter: ukacz
+  | github: ursulakaczmarek
+---
+
+## things we'll cover today:
+- getting data from the new york state open data catalogue
+- short and sweet exploratory data analysis
+- cleaning the dirtiest parts of the data
+- training a machine learning model (a random forest classifier)
+- evaluating our model
+
+
+```{r echo = FALSE}
+options(knitr.table.format = 'html')
+```
+
+### load our packages
+```{r echo = TRUE, message = FALSE}
+library(knitr)
+library(kableExtra)
+library(RSocrata) # to pull df from NY's open data catalogue
+library(tidyverse) # data wrangling
+library(zoo) # date wrangling
+library(randomForest) # our classifier
+library(caret) # classifier evaluation
+```
+
+### getting the data:
+```{r}
+url <- 'https://data.ny.gov/resource/6zik-4gtg.json'
+data <- read.socrata(url)
+```
+
+### exploratory data analysis
+#### overall content
+```{r}
+str(data)
+```
+
+```{r results = 'asis'}
+head(data, n = 5) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c('striped', 'hover'), font_size = 10 )
+```
+
+#### frequency counts
+let's get some frequency counts of the nature of the incidents
+```{r results = 'asis'}
+sort(table(data$incident_type)) %>%
+  kable() %>%
+  kable_styling(font_size = 12)
+```
+
+fist dummy code our target variable
+```{r}
+data <- data %>%
+  mutate(incident_type = ifelse(grepl('DEATH', incident_type), 'death', 'no death'))
+```
+
+define our crosstabs (track and year)
+```{r results = 'asis'}
+tabs <- lapply(data[ , c('track','year')], function(x) xtabs(~ x + data$incident_type))
+
+tabs %>%
+  kable() %>%
+  kable_styling(font_size = 12)
+```
+
+by ratio
+```{r results = 'asis'}
+lapply(tabs, prop.table, margin = 2) %>%
+  kable() %>%
+  kable_styling(font_size = 12)
+```
+
+visualizing the relationship between the target variable and racetrack
+```{r fig.align = 'center', fig.width = 6, fig.height = 8}
+track <- as.data.frame(table(data$incident_type, data$track))
+g <- ggplot(track, aes(Var1, Var2)) 
+g + geom_point(aes(size = Freq), colour = 'darkorange1') + 
+  scale_size_continuous(range = (c(1, 20)), guide = FALSE)  + 
+  geom_text(aes(label = Freq), color = 'navy') + 
+  theme_minimal() + 
+  xlab('equine death?') + ylab('racetrack')
+```
+
+target variable and year
+```{r fig.align = 'center', fig.width = 6, fig.height = 8}
+year <- as.data.frame(table(data$incident_type, data$year))
+g <- ggplot(year, aes(Var1, Var2)) 
+g + geom_point(aes(size = Freq), colour = 'deepskyblue1') + 
+  scale_size_continuous(range = (c(1, 20)), guide = FALSE)  + 
+  geom_text(aes(label = Freq), color = 'navy') + 
+  theme_minimal() + 
+  xlab('equine death?') + ylab('year')
+```
+
+### cleaning the data
+- check and remove any duplicate entries
+- format date field
+- isolate weather condition from temperature
+- drop unwanted and redundant features
+- fill in missing values with a placeholder value
+- group our sparse values
+
+
+#### removing any duplicate rows
+```{r}
+data %>%
+  group_by_all() %>%
+  distinct() %>%
+  nrow()
+```
+
+#### create a season variable from the incident date
+```{r results = 'asis'}
+data <- data %>%
+  mutate(season = factor(format(as.yearqtr(as.yearmon(incident_date, '%m/%d/%Y') + 1/12), '%q'), 
+                         levels = 1:4, labels = c('winter', 'spring', 'summer', 'fall')))
+
+table(data$season) %>%
+  kable() %>%
+  kable_styling(font_size = 12)
+```
+
+#### tackling the weather conditions variable
+first separate the temperature from the descriptive text
+for temperature ranges, we'll take the first (lowest) value
+```{r}
+data <- data %>%
+  mutate(temperature = as.integer(str_extract(weather_conditions, '\\d{2}')))
+```
+
+for the hot mess that is the descriptive text, we'll correct spelling errors and do a quick and dirty lemmatization
+```{r}
+weather.fix <- function(x){
+ text <- str_replace_all(tolower(x), c(
+    'degrees' = '',
+    'over.*$' = 'cloudy',
+    'clo.*$' = 'cloudy',
+    'cou.*$' = 'cloudy',
+    'sun.*$' = 'sunshine',
+    'rain.*$'= 'rain',
+    'driz.*$' = 'rain',
+    'show.*$' = 'rain'
+  ))
+text <- str_extract(text, "[[:lower:]]+" )
+text
+}
+
+data <- data %>%
+  mutate(weather_conditions = weather.fix(weather_conditions))
+```
+
+#### removing redundant/ unwanted variables
+we aren't doing anything with the text fields or the horse id variable, and there are some redundant variables like the date, so let's drop them
+
+```{r}
+data <- data %>%
+  select(division, inv_location, racing_type_description, jockey_driver, trainer, track, weather_conditions, year, season, temperature, incident_type)
+```
+
+#### dealing with missingness
+it's not wise to always just remove observations with null/NA values
+explore simple imputation methods:
+    with numeric data: mean, median, mode
+    with categorical: mode or create new factor of 'missing'
+more advanced methods:
+    regression or k nearest neighbors
+
+here we will replace missing numeric values with the mean value of the variable and missing categorical values with the label 'missing'
+```{r}
+# first impute missing temp data with the mean temp for the season
+data <- data %>%
+  group_by(season) %>%
+  mutate(temperature = round(na.aggregate(temperature)))
+```
+
+convert whitespace
+```{r}
+data[data == " "] <- NA
+data[is.na(data)] = "missing"
+```
+
+#### identify sparse values 
+```{r results = 'asis'}
+counts <- data %>%
+  group_by(weather_conditions) %>%
+  summarise(n = n(),
+            freq = n/nrow(data),  
+            weathersparse = freq < 0.02)
+counts %>%
+  kable() %>%
+  kable_styling(font_size = 12)
+```
+
+lump them together with the label 'other'
+```{r}
+# create a user-defined function that we can use on location variable too
+
+sparsevals <- function(variable, sparseval){
+  to.lump <- names(which(prop.table(table(variable)) <= 0.02))
+  variable[variable %in% to.lump] <- "other"
+  variable
+}
+  
+data <- data %>%
+  mutate_at(vars(inv_location, weather_conditions, jockey_driver, trainer), funs(tolower)) %>%
+  mutate_at(vars(inv_location, weather_conditions, jockey_driver, trainer), funs(sparsevals))
+```
+
+lastly, make our string characters to factors with levels
+```{r}
+data <- data.frame(data) %>%
+       mutate_if(is.character, as.factor)
+```
+
+
+### training a random forest classifier to predict equine death
+- split our data into training and test sets
+- build a classifier
+- test the classifier
+- evaluate performance
+- use cross-validation to get the best classifier
+
+split the data 70/30 train/test
+```{r}
+set.seed(111)
+
+samp <- sample.int(n = nrow(data), size = floor(.7 * nrow(data)), replace = FALSE)
+train <- data[samp, ]
+test <- data[-samp, ]
+```
+
+build a basic random forest classifier without specifying parameters
+```{r}
+set.seed(111)
+
+clf <- randomForest(incident_type ~ ., data = train)
+clf
+```
+
+what does a decision tree look like?
+```{r echo = FALSE}
+library(rpart)
+library(rpart.plot)
+
+cart.clf <- rpart(incident_type ~ division + trainer + year + temperature, data = train)
+prp(cart.clf, varlen = 0, faclen = 0, type = 2, extra = 4)
+```
+
+
+let's see how one of the trees in our model classifies
+```{r, fig.width = 20}
+clftree <- getTree(clf, k = 10, labelVar = TRUE)
+clftree[1:20,] %>%
+  kable() %>% 
+  kable_styling(bootstrap_options = c('striped', 'hover'), font_size = 12)
+```
+
+start at line 1 (our root node): 
+- our sample tree says that the track variable is the first place to partition our training data
+- the split point is an integer and the binary expansion of that integer gives us the position of the categorical variable that are sent to   the left (1) and to the right(0)
+-let's make a binary expansion of 2027 and see which tracks are sent to the left (01) and sent to the right (00):
+```{r}
+intToBits(2027)
+```
+and which tracks occupy the categories sent to the right?
+```{r results = 'asis'}
+levels(train$track)
+levels(train$track)[c(3,5)]
+```
+
+ok, well, that seems like a lot to interpret already, and that's just one node in one tree in our forest. is there an easier way to evaluate our random forest classifier results? YES! let's run the classifier on some testing data to see if it improves on a baseline prediction
+
+```{r}
+clf.predict <- predict(clf, newdata = test)
+```
+
+what the basline accuracy? the most common result: no death
+
+```{r}
+test %>%
+  group_by(incident_type) %>%
+  summarise (n = n()) %>%
+  mutate(freq = n / sum(n)) %>%
+  kable() %>% 
+  kable_styling(bootstrap_options = c('striped', 'hover'), font_size = 12)
+```
+
+### evaluating our random forest classifier
+
+```{r}
+confusionMatrix(data = clf.predict, test$incident_type)
+```
+
+almost 83% overall accuracy is not bad! what about sensitivity and specificity? sensitivity is the measure of the classifier's ability to correctly identify true positives (the classifier predicted death and the horse died). specificity is the measure of the classifier to avoid false postivies (the classifier predicted death but the horse did not die). our model's sensitivity rate is the lower measure, meaning our classifier was better at avoiding false positives than identifying them. 
+
+
+what about the variables? which ones did our classifier consider most important?
+```{r}
+varImpPlot(clf)
+```
+
+The x-axis of our plot measures the mean decrease in node impurity after a split in the decision trees. the higher the mean decrease, the highter the degree to which the variable makes the node homogeneous.
+
+
+
