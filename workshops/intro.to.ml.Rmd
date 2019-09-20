@@ -2,10 +2,12 @@
 title: 'intro to machine learning using open data'
 description: 'open data day albany/troy 2018 workshop'
 output: github_document
+always_allow_html: yes
 author: |
   | ursula kaczmarek
   | twitter: ukacz
   | github: ursulakaczmarek
+
 ---
 
 ## things we'll cover today:
@@ -179,7 +181,8 @@ here we will replace missing numeric values with the mean value of the variable 
 # first impute missing temp data with the mean temp for the season
 data <- data %>%
   group_by(season) %>%
-  mutate(temperature = round(na.aggregate(temperature)))
+  mutate(temperature = round(na.aggregate(temperature)),
+         year = as.integer(year))
 ```
 
 convert whitespace
@@ -229,13 +232,10 @@ data <- data.frame(data) %>%
 - evaluate performance
 - use cross-validation to get the best classifier
 
-split the data 70/30 train/test
+split the data 70/30 train/test with training set covering pre-2016 races and test covering 2016-present
 ```{r}
-set.seed(111)
-
-samp <- sample.int(n = nrow(data), size = floor(.7 * nrow(data)), replace = FALSE)
-train <- data[samp, ]
-test <- data[-samp, ]
+train = data[data$year <= 2016, ]
+test  = data[data$year > 2016, ]
 ```
 
 build a basic random forest classifier without specifying parameters
